@@ -17,6 +17,7 @@
 #include "UnicodeString.h"
 #include "Logger.h"
 #include "Merge.h"
+#include "MergeCmdLineInfo.h"
 #include "OpenDoc.h"
 #include "ProjectFile.h"
 #include "paths.h"
@@ -139,6 +140,7 @@ BEGIN_MESSAGE_MAP(COpenView, CFormView)
 	ON_WM_DESTROY()
 	ON_WM_SIZE()
 	ON_BN_CLICKED(IDC_RECENT_COMPARES_SHOW, OnRecentComparesShow)
+	ON_NOTIFY(NM_CLICK, IDC_RECENT_COMPARES_LIST, OnClickRecentCompares)
 	ON_NOTIFY(NM_DBLCLK, IDC_RECENT_COMPARES_LIST, OnDblclkRecentCompares)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
@@ -2029,6 +2031,41 @@ void COpenView::OnRecentComparesShow()
 void COpenView::OnDblclkRecentCompares(NMHDR *pNMHDR, LRESULT *pResult)
 {
 	OpenRecentCompare(reinterpret_cast<NMITEMACTIVATE*>(pNMHDR)->iItem);
+	*pResult = 0;
+}
+
+/**
+ * @brief Show the paths and options of the clicked recent comparison in the form.
+ */
+void COpenView::OnClickRecentCompares(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	const int nItem = reinterpret_cast<NMITEMACTIVATE*>(pNMHDR)->iItem;
+	if (nItem >= 0 && nItem < static_cast<int>(m_recentCompares.size()))
+	{
+		// Recent entries store the command-line arguments without the executable name.
+		const String commandLine = _T("WinMergeU.exe ") + m_recentCompares[nItem].params;
+		MergeCmdLineInfo cmdInfo(commandLine.c_str());
+		if (cmdInfo.m_Files.GetSize() >= 2 && cmdInfo.m_Files.GetSize() <= 3)
+		{
+			const fileopenflags_t flags[] = {
+				cmdInfo.m_dwLeftFlags,
+				cmdInfo.m_Files.GetSize() == 2 ? cmdInfo.m_dwRightFlags : cmdInfo.m_dwMiddleFlags,
+				cmdInfo.m_dwRightFlags
+			};
+			for (int i = 0; i < 3; ++i)
+			{
+				m_strPath[i] = i < cmdInfo.m_Files.GetSize() ? cmdInfo.m_Files[i] : _T("");
+				m_bReadOnly[i] = (flags[i] & FFILEOPEN_READONLY) != 0;
+			}
+			m_strExt = cmdInfo.m_sFileFilter;
+			m_strUnpackerPipeline = cmdInfo.m_sUnpacker;
+			m_strPredifferPipeline = cmdInfo.m_sPreDiffer;
+			if (cmdInfo.m_bRecurse.has_value())
+				m_bRecurse = *cmdInfo.m_bRecurse;
+			UpdateData(FALSE);
+			UpdateButtonStates();
+		}
+	}
 	*pResult = 0;
 }
 
