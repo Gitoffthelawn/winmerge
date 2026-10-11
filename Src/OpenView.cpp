@@ -1954,7 +1954,7 @@ void COpenView::ShowRecentCompares(bool bShow)
 			pMdiClient->ScreenToClient(&rcFrame);
 			pFrame->GetClientRect(&rcFrameClient);
 			const int nNonClientHeight = rcFrame.Height() - rcFrameClient.Height();
-			const int nAvailableHeight = (std::max)(0L, rcMdiClient.bottom - rcFrame.top - nNonClientHeight - m_sizeOrig.cy);
+			const int nAvailableHeight = (std::max)(0L, rcMdiClient.bottom - nNonClientHeight - m_sizeOrig.cy);
 			m_nRecentComparesHeight = (std::min)(nPreferredHeight, nAvailableHeight);
 		}
 		else
